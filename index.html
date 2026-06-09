@@ -220,27 +220,38 @@
             background-color: #357ABD;
         }
 
+        /* --- MENUS --- */
         .start-screen, .result-screen {
             display: flex;
             flex-direction: column;
             align-items: center;
         }
 
-        .start-btn, .restart-btn {
-            background-color: var(--secondary);
+        .btn-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .start-btn, .restart-btn, .resume-btn, .reset-btn {
             color: white;
             border: none;
-            padding: 18px 50px;
-            font-size: 20px;
+            padding: 15px 30px;
+            font-size: 18px;
             border-radius: 30px;
             cursor: pointer;
             font-weight: bold;
-            margin-top: 20px;
-            box-shadow: 0 4px 15px rgba(255, 159, 28, 0.4);
             transition: transform 0.2s;
         }
 
-        .start-btn:hover, .restart-btn:hover {
+        .start-btn { background-color: var(--primary); box-shadow: 0 4px 15px rgba(74, 144, 226, 0.4); }
+        .resume-btn { background-color: var(--secondary); box-shadow: 0 4px 15px rgba(255, 159, 28, 0.4); }
+        .reset-btn { background-color: #e74c3c; box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4); }
+        .restart-btn { background-color: var(--secondary); }
+
+        .start-btn:hover, .resume-btn:hover, .reset-btn:hover, .restart-btn:hover {
             transform: scale(1.05);
         }
 
@@ -269,7 +280,7 @@
         }
 
         body.dark-mode .choice-btn:hover:not(:disabled) {
-            background-color: #2a4365; /* Un beau bleu nuit foncé pour le survol */
+            background-color: #2a4365; /* Bleu nuit pour le survol */
             border-color: var(--primary);
             color: #ffffff;
         }
@@ -307,19 +318,19 @@
             transform: translateY(-2px);
         }
 
-        /* Correction des boutons Bonne/Mauvaise réponse en mode sombre */
+        /* Correction des boutons en mode sombre (Bon/Mauvais) */
         body.dark-mode .choice-btn.correct,
         body.dark-mode .text-input.correct {
-            background-color: #1e3d2f !important; /* Vert très foncé */
+            background-color: #1e3d2f !important;
             border-color: var(--correct) !important;
-            color: #2ecc71 !important; /* Vert clair pour le texte */
+            color: #2ecc71 !important;
         }
 
         body.dark-mode .choice-btn.incorrect,
         body.dark-mode .text-input.incorrect {
-            background-color: #3d2424 !important; /* Rouge très foncé */
+            background-color: #3d2424 !important;
             border-color: var(--incorrect) !important;
-            color: #e74c3c !important; /* Rouge clair pour le texte */
+            color: #e74c3c !important;
         }
 
     </style>
@@ -330,11 +341,17 @@
         <button class="theme-toggle-btn" id="theme-toggle" onclick="toggleDarkMode()">🌙 Mode Sombre</button>
         
         <div id="start-screen" class="start-screen">
-            <h1>📚 Révision CCQ : La Démocratie (Édition Hardcore)</h1>
-            <p class="subtitle">Moins de "fafa", plus de défi pour ton examen de Sec 2 !</p>
-            <img src="https://cdn-icons-png.flaticon.com/512/3281/3281323.png" alt="Study Icon" width="150" style="margin:20px 0;">
-            <p>Ce quiz de 32 questions mélange des <strong>choix de réponses</strong> et des <strong>questions à développement (où tu dois taper la réponse)</strong> pour t'obliger à vraiment mémoriser tes concepts.</p>
-            <button class="start-btn" onclick="startQuiz()">Lancer le défi 🚀</button>
+            <h1>📚 Révision CCQ : Démocratie Sec 2</h1>
+            <p class="subtitle">Progression sauvegardée automatiquement !</p>
+            <img src="https://cdn-icons-png.flaticon.com/512/3281/3281323.png" alt="Study Icon" width="120" style="margin:20px 0;">
+            <p>Ce quiz de <strong>32 questions</strong> mélange choix de réponses et questions à développement court.</p>
+            
+            <div class="btn-group">
+                <button id="btn-new-game" class="start-btn" onclick="startNewQuiz()">Nouvelle partie 🚀</button>
+                <button id="btn-resume" class="resume-btn hidden" onclick="resumeQuiz()">Continuer la partie 💾</button>
+                <button id="btn-reset" class="reset-btn hidden" onclick="resetData()">Effacer les données 🗑️</button>
+            </div>
+            <p id="save-info" style="margin-top: 15px; font-size: 14px; color: var(--correct); font-weight: bold;"></p>
         </div>
 
         <div id="quiz-area" class="hidden">
@@ -346,8 +363,7 @@
             <p style="color:var(--primary); font-weight:bold; margin-bottom: 10px;">Question <span id="current-q-num">1</span></p>
             <div id="question-text" class="question-text">Question text here?</div>
             
-            <div id="choices-grid" class="choices-grid">
-                </div>
+            <div id="choices-grid" class="choices-grid"></div>
 
             <div id="text-input-container" class="text-input-container">
                 <input type="text" id="text-answer" class="text-input" placeholder="Tape ta réponse ici..." autocomplete="off">
@@ -368,203 +384,46 @@
             <p class="subtitle">Voici ton résultat final</p>
             <h2 style="font-size: 48px; color: var(--primary); margin: 20px 0;"><span id="final-score">0</span> / <span id="final-total">0</span></h2>
             <p id="result-message" style="font-size: 18px; margin-bottom: 30px;"></p>
-            <button class="restart-btn" onclick="restartQuiz()">Recommencer le quiz 🔄</button>
+            <button class="restart-btn" onclick="resetDataAndRestart()">Recommencer à zéro 🔄</button>
         </div>
 
     </div>
 
     <script>
-        // --- BANQUE DE QUESTIONS MIXTES (MCQ + TEXT) ---
+        // --- LES 32 QUESTIONS (MÉLANGE COMPLET) ---
         const questions = [
-            {
-                type: "mcq",
-                question: "Que signifie le mot « démocratie » selon son origine grecque (dêmokratia) ?",
-                choices: ["Le pouvoir du roi", "Le pouvoir des élus", "Le pouvoir du peuple", "Le pouvoir de l'État"],
-                correctIndex: 2,
-                feedback: "Le mot vient de [dêmos] qui signifie « peuple » et [kratos] qui signifie « puissance ». Autrement dit : le pouvoir du peuple."
-            },
-            {
-                type: "mcq",
-                question: "En démocratie, comment prend-on généralement une décision lorsque le consensus (100% d'accord) est impossible ?",
-                choices: ["Le chef décide seul", "On applique la règle de la majorité (+ de 50%)", "On tire au sort", "On utilise le pouvoir judiciaire"],
-                correctIndex: 1,
-                feedback: "Puisque les choix ne font pas souvent consensus (l'accord de l'ensemble de la population), on applique la règle de la majorité : plus de la moitié des personnes doivent être d'accord."
-            },
-            {
-                type: "text",
-                question: "Complète la phrase : L'institution officielle qui s'occupe d'encadrer et de surveiller les élections au Québec s'appelle _________ Québec.",
-                acceptedAnswers: ["elections", "élections", "election", "élection"],
-                feedback: "C'est Élections Québec ! C'est l'institution officielle qui encadre la démocratie et surveille les personnes en autorité lors des processus électoraux."
-            },
-            {
-                type: "mcq",
-                question: "Selon tes notes, laquelle de ces menaces N'EST PAS une des 4 menaces principales à la démocratie en 2026 ?",
-                choices: ["La désinformation", "Les chambres d'écho", "L'ingérence étrangère", "L'absentéisme électoral"],
-                correctIndex: 3,
-                feedback: "Les 4 grandes menaces à ton examen sont : 1. L'ingérence étrangère, 2. La désinformation, 3. L'influence partisane et 4. Les chambres d'écho."
-            },
-            {
-                type: "mcq",
-                question: "Qu'est-ce que l'État de droit (ou la primauté du droit) ?",
-                choices: ["Le gouvernement peut choisir quelles lois respecter", "Personne n'est au-dessus des lois, elles s'appliquent à tous", "La police a tous les droits", "Les lois fédérales sont optionnelles"],
-                correctIndex: 1,
-                feedback: "En démocratie, les lois s'appliquent à tout le monde, même aux personnes en position de pouvoir (le gouvernement, les policiers, l'armée)."
-            },
-            {
-                type: "text",
-                question: "Lequel des 3 pouvoirs de l'État a pour fonction de PROPOSER, RÉDIGER et ADOPTER des lois ?",
-                acceptedAnswers: ["legislatif", "législatif", "le pouvoir legislatif", "le pouvoir législatif"],
-                feedback: "Le pouvoir législatif est exercé par des personnes élues siégeant dans un parlement (comme l'Assemblée nationale) pour créer les lois."
-            },
-            {
-                type: "mcq",
-                question: "Quel pouvoir a pour fonction d'APPLIQUER les lois et de DIRIGER l'État ?",
-                choices: ["Le pouvoir législatif", "Le pouvoir exécutif", "Le pouvoir judiciaire", "Le pouvoir municipal"],
-                correctIndex: 1,
-                feedback: "Le pouvoir exécutif, exercé par le gouvernement (composé du Premier ministre et de ses ministres), s'occupe de mettre les lois en application."
-            },
-            {
-                type: "text",
-                question: "Lequel des 3 pouvoirs de l'État a pour fonction d'INTERPRÉTER les lois et de JUGER si elles sont respectées ?",
-                acceptedAnswers: ["judiciaire", "le pouvoir judiciaire", "pouvoir judiciaire"],
-                feedback: "Le pouvoir judiciaire est exercé par les juges dans les tribunaux. Ce pouvoir est totalement indépendant du gouvernement pour rester neutre."
-            },
-            {
-                type: "mcq",
-                question: "Dans la hiérarchisation des lois au Québec, quelle est la loi dominante qui passe avant toutes les autres ?",
-                choices: ["Les règlements municipaux", "La Charte des droits et libertés canadienne", "Les lois provinciales", "Les directives policières"],
-                correctIndex: 1,
-                feedback: "La Charte des droits et libertés est la loi suprême. Ensuite viennent les lois fédérales et provinciales, puis les règlements municipaux à la toute fin."
-            },
-            {
-                type: "text",
-                question: "Quel palier de gouvernement s'occupe de l'armée, de la monnaie et du service postal ?",
-                acceptedAnswers: ["federal", "fédéral", "le gouvernement federal", "le gouvernement fédéral", "canada"],
-                feedback: "Le gouvernement Fédéral gère les dossiers globaux qui concernent l'ensemble du pays (le Canada)."
-            },
-            {
-                type: "mcq",
-                question: "Quel palier de gouvernement s'occupe de l'éducation, de la santé, des services sociaux et des ressources naturelles ?",
-                choices: ["Le gouvernement fédéral", "Le gouvernement provincial", "Les municipalités", "Le pouvoir judiciaire"],
-                correctIndex: 1,
-                feedback: "Le gouvernement provincial (le Québec) gère ces grands dossiers publics qui touchent directement le quotidien de la province."
-            },
-            {
-                type: "mcq",
-                question: "Laquelle de ces responsabilités appartient EXCLUSIVEMENT au palier municipal ?",
-                choices: ["L'assurance-emploi", "L'alimentation en eau potable et la planification de nouveaux quartiers", "L'agriculture", "Les lois civiles (mariages, propriétés)"],
-                correctIndex: 1,
-                feedback: "Les municipalités s'occupent des services locaux de proximité comme l'aqueduc, la collecte des déchets, les loisirs locaux et le zonage."
-            },
-            {
-                type: "text",
-                question: "L'immigration, l'environnement et l'agriculture sont des compétences __________ entre le fédéral et le provincial.",
-                acceptedAnswers: ["partagees", "partagées", "partage", "partagés", "partages"],
-                feedback: "Ce sont des compétences PARTAGÉES. Le fédéral et le provincial doivent s'entendre et travailler ensemble sur ces dossiers."
-            },
-            {
-                type: "mcq",
-                question: "En cas de conflit ou de désaccord persistant entre le fédéral et le provincial sur le partage d'une compétence, que fait-on si les négociations échouent ?",
-                choices: ["Le fédéral décide par la force", "On annule la loi", "On a recours aux tribunaux pour trancher", "On refait des élections"],
-                correctIndex: 2,
-                feedback: "Les tribunaux (le pouvoir judiciaire) interviennent de façon neutre pour trancher les chicanes de compétences constitutionnelles entre les deux paliers."
-            },
-            {
-                type: "text",
-                question: "Quel est le nom du type de pouvoir possédé par une personne qui a un don naturel pour rassembler et inspirer les foules ?",
-                acceptedAnswers: ["charismatique", "pouvoir charismatique", "le pouvoir charismatique"],
-                feedback: "Le pouvoir charismatique est attribué selon la force de caractère, le leadership et les aptitudes naturelles qui attirent l'admiration des gens."
-            },
-            {
-                type: "mcq",
-                question: "Situation : « Mère Térésa ou Gandhi sont vus comme des figures d'inspiration guidées par de fortes convictions. » Quelle est cette forme de pouvoir ?",
-                choices: ["Le pouvoir héréditaire", "Le pouvoir du savoir", "Le pouvoir démocratique", "Le pouvoir moral"],
-                correctIndex: 3,
-                feedback: "Le pouvoir moral provient du respect des qualités éthiques d'une personne (valeurs fortes, sagesse, religion) en tant que conseiller écouté."
-            },
-            {
-                type: "mcq",
-                question: "Quelle forme de pouvoir est basée sur l'expertise, et précise que « moins il y a de personnes qui possèdent ce savoir, plus il est valorisé » (Ex: un médecin ou un scientifique) ?",
-                choices: ["Le pouvoir totalitaire", "Le pouvoir hiérarchique", "Le pouvoir du savoir", "Le pouvoir héréditaire"],
-                correctIndex: 2,
-                feedback: "Le pouvoir du savoir reconnaît les connaissances scientifiques, techniques ou spécialisées qu'un individu possède."
-            },
-            {
-                type: "mcq",
-                question: "Associe ce concept : « C'est un système pyramidal basé sur les rôles et l'organisation où l'on peut gravir les échelons. Exemple : une entreprise ou l'école. »",
-                choices: ["Le pouvoir autoritaire", "Le pouvoir hiérarchique", "Le pouvoir héréditaire", "Le pouvoir totalitaire"],
-                correctIndex: 1,
-                feedback: "Le pouvoir hiérarchique organise un groupe sous forme de pyramide, où chaque niveau détient une autorité définie par ses fonctions."
-            },
-            {
-                type: "mcq",
-                question: "Associe cette situation : « Après le décès d'un souverain, son fils aîné ou son plus proche parent est couronné pour lui succéder. »",
-                choices: ["Pouvoir héréditaire", "Pouvoir moral", "Pouvoir autoritaire", "Pouvoir démocratique"],
-                correctIndex: 0,
-                feedback: "Le pouvoir héréditaire se transmet directement de génération en génération au sein d'une même lignée ou famille royale."
-            },
-            {
-                type: "mcq",
-                question: "Qu'est-ce qui distingue principalement un pouvoir TOTALITAIRE d'un pouvoir AUTORITAIRE selon tes notes de cours ?",
-                choices: ["Le totalitaire permet des élections libres, l'autoritaire non.", "Le totalitaire possède une idéologie rigide et veut un contrôle absolu de la vie privée (créer un 'Homme nouveau'), l'autoritaire veut juste l'obéissance politique.", "L'autoritaire fusionne l'État et la société, le totalitaire accepte les différences.", "Il n'y a aucune différence."],
-                correctIndex: 1,
-                feedback: "Le régime totalitaire va beaucoup plus loin : il exige une uniformité complète, utilise la suspicion constante et la délation pour contrôler les pensées et la vie privée."
-            },
-            {
-                type: "mcq",
-                question: "Qu'est-ce qu'une dictature utilise habituellement en priorité pour forcer l'obéissance et maintenir son pouvoir ?",
-                choices: ["L'armée et la peur", "Les institutions démocratiques", "Les référendums populaires", "La liberté de presse"],
-                correctIndex: 0,
-                feedback: "Les dictatures s'appuient sur les forces armées, la censure et l'intimidation pour éliminer l'opposition et rester en place."
-            },
-            {
-                type: "mcq",
-                question: "Historiquement au Québec, avant que l'État ne devienne laïque, quelle institution jouait un rôle de premier plan dans l'éducation et la santé ?",
-                choices: ["Le gouvernement fédéral", "L'Église catholique", "L'armée canadienne", "La monarchie britannique"],
-                correctIndex: 1,
-                feedback: "L'Église catholique a exercé une influence majeure sur les structures sociales, la politique, les écoles et les hôpitaux au Québec pendant très longtemps."
-            },
-            {
-                type: "mcq",
-                question: "Dans les principes de la laïcité, qu'est-ce que « la neutralité de l'État en matière religieuse » signifie ?",
-                choices: ["L'État interdit toutes les religions.", "L'État promeut l'athéisme.", "L'État traite tout le monde de façon égale sans privilégier, financer ou interdire une religion.", "L'État a une religion officielle mais tolère les autres."],
-                correctIndex: 2,
-                feedback: "La neutralité garantit que l'État reste impartial afin de protéger l'égalité de tous les citoyens, peu importent leurs convictions."
-            },
-            {
-                type: "mcq",
-                question: "La liberté de conscience et de religion garantit qu'une personne a le droit de choisir librement ses croyances. Est-elle aussi libre de n'avoir AUCUNE croyance religieuse ?",
-                choices: ["Vrai", "Faux"],
-                correctIndex: 0,
-                feedback: "La liberté de conscience protège l'ensemble de la population : le droit de croire, de changer de religion, ou de choisir de ne pas croire du tout."
-            },
-            {
-                type: "text",
-                question: "Quel est le numéro de la Loi adoptée en 2019 au Québec concernant la laïcité de l'État ?",
-                acceptedAnswers: ["21", "loi 21", "la loi 21"],
-                feedback: "C'est la fameuse Loi 21 (Loi sur la laïcité de l'État) qui interdit le port de signes religieux aux personnes en position d'autorité."
-            },
-            {
-                type: "mcq",
-                question: "Qu'est-ce que la loi 21 (Loi sur la laïcité de l'État) adoptée au Québec en 2019 interdit précisément ?",
-                choices: ["Le port de signes religieux pour les élèves à l'école.", "Le port de signes religieux pour certains employés de l'État en position d'autorité pendant leurs fonctions.", "La construction de nouveaux lieux de culte.", "L'enseignement de l'éthique."],
-                correctIndex: 1,
-                feedback: "La loi 21 restreint le port de symboles religieux uniquement pour les agents de l'État en position d'autorité afin d'afficher la neutralité de l'institution qu'ils représentent."
-            },
-            {
-                type: "mcq",
-                question: "Pourquoi la Loi 21 fait-elle l'objet de contestations devant les tribunaux ?",
-                choices: ["Parce qu'elle coûte trop cher à appliquer.", "Parce que ses opposants estiment qu'elle limite la liberté religieuse individuelle, tandis que ses partisans défendent la laïcité collective.", "Parce que le gouvernement fédéral veut imposer une religion.", "Parce qu'elle ne s'applique pas aux municipalités."],
-                correctIndex: 1,
-                feedback: "C'est le point central du débat juridique et social : l'équilibre délicat entre les libertés individuelles de religion et le choix collectif de la laïcité des institutions."
-            },
-            {
-                type: "mcq",
-                question: "Si la population est profondément en désaccord avec les décisions politiques de ses dirigeants, que se passe-t-il dans une démocratie ?",
-                choices: ["L'armée va prendre le pouvoir.", "La population va subir sans pouvoir réagir.", "Les citoyens peuvent contester et voter pour de nouveaux représentants aux prochaines élections.", "Le pouvoir devient automatiquement héréditaire."],
-                correctIndex: 2,
-                feedback: "La démocratie permet aux citoyens de sanctionner pacifiquement les élus en modifiant leur vote lors des élections périodiques."
-            }
+            { type: "mcq", question: "Que signifie le mot « démocratie » selon son origine grecque (dêmokratia) ?", choices: ["Le pouvoir du roi", "Le pouvoir des élus", "Le pouvoir du peuple", "Le pouvoir de l'État"], correctIndex: 2, feedback: "Le mot vient de [dêmos] qui signifie « peuple » et [kratos] qui signifie « puissance »." },
+            { type: "mcq", question: "En démocratie, comment prend-on généralement une décision lorsque le consensus (100% d'accord) est impossible ?", choices: ["Le chef décide seul", "On applique la règle de la majorité", "On tire au sort", "On utilise le pouvoir judiciaire"], correctIndex: 1, feedback: "Puisque les choix ne font pas souvent consensus, on applique la règle de la majorité : plus de la moitié des personnes doivent être d'accord." },
+            { type: "text", question: "Complète la phrase : L'institution officielle qui s'occupe d'encadrer et de surveiller les élections au Québec s'appelle _________ Québec.", acceptedAnswers: ["elections", "élections", "election", "élection"], feedback: "C'est Élections Québec ! Elle surveille les processus électoraux de façon neutre." },
+            { type: "mcq", question: "Selon tes notes, laquelle de ces menaces N'EST PAS une des 4 menaces principales à la démocratie ?", choices: ["La désinformation", "Les chambres d'écho", "L'ingérence étrangère", "L'absentéisme électoral"], correctIndex: 3, feedback: "Les 4 grandes menaces sont : 1. Ingérence étrangère, 2. Désinformation, 3. Influence partisane et 4. Chambres d'écho." },
+            { type: "mcq", question: "Qu'est-ce que l'État de droit (la primauté du droit) ?", choices: ["Le gouvernement peut choisir quelles lois respecter", "Personne n'est au-dessus des lois, elles s'appliquent à tous", "La police a tous les droits", "Les lois fédérales sont optionnelles"], correctIndex: 1, feedback: "Les lois s'appliquent à tout le monde également, même aux dirigeants." },
+            { type: "text", question: "Lequel des 3 pouvoirs de l'État a pour fonction de PROPOSER, RÉDIGER et ADOPTER des lois ?", acceptedAnswers: ["legislatif", "législatif", "le pouvoir legislatif", "le pouvoir législatif"], feedback: "Le pouvoir législatif est exercé par les députés élus siégeant au parlement." },
+            { type: "mcq", question: "Quel pouvoir a pour fonction d'APPLIQUER les lois et de DIRIGER l'État ?", choices: ["Le pouvoir législatif", "Le pouvoir exécutif", "Le pouvoir judiciaire", "Le pouvoir municipal"], correctIndex: 1, feedback: "Le pouvoir exécutif (le gouvernement et ses ministres) met les lois en action." },
+            { type: "text", question: "Lequel des 3 pouvoirs de l'État a pour fonction d'INTERPRÉTER les lois et de JUGER si elles sont respectées ?", acceptedAnswers: ["judiciaire", "le pouvoir judiciaire", "pouvoir judiciaire"], feedback: "Le pouvoir judiciaire est exercé par les juges, de façon totalement indépendante." },
+            { type: "mcq", question: "Dans la hiérarchisation des lois au Québec, quelle est la loi dominante ?", choices: ["Les règlements municipaux", "La Charte des droits et libertés", "Les lois provinciales", "Les directives policières"], correctIndex: 1, feedback: "La Charte des droits et libertés est la loi suprême du pays." },
+            { type: "text", question: "Quel palier de gouvernement s'occupe de l'armée, de la monnaie et du service postal ?", acceptedAnswers: ["federal", "fédéral", "le gouvernement federal", "le gouvernement fédéral", "canada"], feedback: "Le Fédéral gère les dossiers globaux pour l'ensemble du Canada." },
+            { type: "mcq", question: "Quel palier de gouvernement s'occupe de l'éducation, de la santé et des ressources naturelles ?", choices: ["Fédéral", "Provincial", "Municipal", "Judiciaire"], correctIndex: 1, feedback: "Le Provincial (Québec) gère ces dossiers qui touchent directement la population de la province." },
+            { type: "mcq", question: "Laquelle de ces responsabilités appartient EXCLUSIVEMENT au palier municipal ?", choices: ["L'assurance-emploi", "L'aqueduc, la collecte des déchets et le zonage", "L'agriculture", "Les lois civiles"], correctIndex: 1, feedback: "Les municipalités s'occupent des services locaux de proximité." },
+            { type: "text", question: "L'immigration et l'environnement sont des compétences __________ entre le fédéral et le provincial.", acceptedAnswers: ["partagees", "partagées", "partage", "partagés"], feedback: "Ce sont des compétences PARTAGÉES. Les deux gouvernements doivent collaborer." },
+            { type: "mcq", question: "En cas de conflit persistant entre le fédéral et le provincial sur une compétence, qui tranche ?", choices: ["Le fédéral décide par la force", "On annule la loi", "On a recours aux tribunaux (juges)", "On refait des élections"], correctIndex: 2, feedback: "Les tribunaux interviennent pour trancher les chicanes de compétences constitutionnelles." },
+            { type: "text", question: "Comment appelle-t-on le pouvoir d'une personne qui a un don naturel pour rassembler et inspirer les foules ?", acceptedAnswers: ["charismatique", "pouvoir charismatique", "le pouvoir charismatique"], feedback: "Le pouvoir charismatique vient du leadership naturel d'une personne." },
+            { type: "mcq", question: "« Mère Térésa ou Gandhi sont vus comme des figures d'inspiration guidées par de fortes convictions. » Quelle est cette forme de pouvoir ?", choices: ["Pouvoir héréditaire", "Pouvoir du savoir", "Pouvoir démocratique", "Pouvoir moral"], correctIndex: 3, feedback: "Le pouvoir moral provient du respect des qualités éthiques et des valeurs d'une personne." },
+            { type: "mcq", question: "Quelle forme de pouvoir est basée sur l'expertise scientifique ou technique (Ex: un médecin) ?", choices: ["Pouvoir totalitaire", "Pouvoir hiérarchique", "Pouvoir du savoir", "Pouvoir héréditaire"], correctIndex: 2, feedback: "Le pouvoir du savoir valorise les connaissances rares et spécialisées." },
+            { type: "mcq", question: "« C'est un système pyramidal basé sur les rôles (Ex: une entreprise ou l'école). »", choices: ["Autoritaire", "Hiérarchique", "Héréditaire", "Totalitaire"], correctIndex: 1, feedback: "Le pouvoir hiérarchique organise un groupe en pyramide avec des niveaux d'autorité." },
+            { type: "mcq", question: "« Après le décès d'un souverain, son enfant est couronné pour lui succéder. »", choices: ["Héréditaire", "Moral", "Autoritaire", "Démocratique"], correctIndex: 0, feedback: "Le pouvoir héréditaire se transmet par la génétique/famille." },
+            { type: "mcq", question: "Qu'est-ce qui distingue un pouvoir TOTALITAIRE d'un pouvoir AUTORITAIRE ?", choices: ["Le totalitaire permet des élections", "Le totalitaire veut un contrôle absolu de la vie privée (pensée unique), l'autoritaire veut juste l'obéissance politique.", "L'autoritaire fusionne l'État et la société", "Il n'y a aucune différence"], correctIndex: 1, feedback: "Le totalitarisme cherche à contrôler jusqu'à la pensée des individus (créer un 'Homme nouveau')." },
+            { type: "mcq", question: "Qu'est-ce qu'une dictature utilise habituellement pour maintenir son pouvoir ?", choices: ["L'armée et la peur", "Les institutions démocratiques", "Les référendums", "La liberté de presse"], correctIndex: 0, feedback: "Censure, armée et intimidation sont les outils d'une dictature." },
+            { type: "mcq", question: "Historiquement au Québec, avant la laïcité de l'État, qui contrôlait l'éducation et la santé ?", choices: ["Le fédéral", "L'Église catholique", "L'armée", "La monarchie"], correctIndex: 1, feedback: "L'Église catholique dirigeait ces institutions avant les années 1960." },
+            { type: "mcq", question: "En laïcité, que signifie « la neutralité de l'État en matière religieuse » ?", choices: ["L'État interdit les religions", "L'État promeut l'athéisme", "L'État traite tout le monde de façon égale sans privilégier une religion.", "L'État a une religion officielle"], correctIndex: 2, feedback: "L'État reste impartial pour protéger l'égalité de tous." },
+            { type: "mcq", question: "La liberté de conscience garantit-elle le droit de n'avoir AUCUNE religion ?", choices: ["Oui, tout à fait", "Non, c'est interdit"], correctIndex: 0, feedback: "Le droit de ne pas croire est protégé autant que le droit de croire." },
+            { type: "text", question: "Quel est le numéro de la Loi adoptée en 2019 au Québec concernant la laïcité de l'État ?", acceptedAnswers: ["21", "loi 21", "la loi 21"], feedback: "La Loi 21 interdit les signes religieux aux employés de l'État en position d'autorité." },
+            { type: "mcq", question: "Qu'est-ce que la loi 21 interdit précisément ?", choices: ["Les signes religieux pour les élèves.", "Les signes religieux pour certains employés de l'État en position d'autorité.", "La construction d'églises.", "L'enseignement de la religion."], correctIndex: 1, feedback: "Seules les personnes en autorité (policiers, profs, juges) sont visées pendant leur travail." },
+            { type: "mcq", question: "Pourquoi la Loi 21 est-elle contestée devant les tribunaux ?", choices: ["Elle coûte trop cher", "Conflit entre les libertés religieuses individuelles et la laïcité collective", "Le fédéral veut imposer une religion", "Elle ne s'applique pas aux villes"], correctIndex: 1, feedback: "C'est un grand débat juridique sur la limite des libertés individuelles." },
+            { type: "mcq", question: "Si la population est en désaccord avec ses dirigeants, que se passe-t-il en démocratie ?", choices: ["L'armée prend le pouvoir", "Rien", "Les citoyens peuvent voter pour d'autres représentants aux élections.", "Le pouvoir devient héréditaire"], correctIndex: 2, feedback: "Les élections permettent de sanctionner pacifiquement le gouvernement." },
+            { type: "mcq", question: "En quelle année les femmes ont-elles finalement obtenu le droit de vote aux élections provinciales du Québec ?", choices: ["1867", "1918", "1940", "1960"], correctIndex: 2, feedback: "C'est en 1940, grâce au travail de militantes comme Thérèse Casgrain." },
+            { type: "text", question: "Quel est l'âge minimum requis pour avoir le droit de voter aux élections au Québec ?", acceptedAnswers: ["18", "dix-huit", "18 ans", "dix huit"], feedback: "Il faut avoir 18 ans le jour du scrutin pour être considéré comme électeur." },
+            { type: "mcq", question: "Qu'est-ce qu'une constitution dans un pays ?", choices: ["Un traité de paix", "La loi fondamentale qui détermine comment l'État et les pouvoirs fonctionnent", "Un code criminel", "Une alliance militaire"], correctIndex: 1, feedback: "La constitution, c'est les règles du jeu d'un pays : elle organise la répartition des pouvoirs." },
+            { type: "mcq", question: "Pourquoi dit-on souvent que les médias d'information sont le « quatrième pouvoir » en démocratie ?", choices: ["Parce qu'ils votent les lois", "Parce qu'ils surveillent le gouvernement, informent les citoyens et dénoncent les abus", "Parce qu'ils dirigent l'armée", "C'est faux, ils n'ont aucun pouvoir"], correctIndex: 1, feedback: "Une presse libre est essentielle pour garder les politiciens responsables de leurs actes devant le peuple." }
         ];
 
         // --- VARIABLES DU JEU ---
@@ -588,15 +447,78 @@
         const totalQSpan = document.getElementById('total-q');
         const currentQNumSpan = document.getElementById('current-q-num');
         const progressBar = document.getElementById('progress-bar');
+        
+        const btnResume = document.getElementById('btn-resume');
+        const btnReset = document.getElementById('btn-reset');
+        const saveInfo = document.getElementById('save-info');
 
         totalQSpan.innerText = questions.length;
 
-        // Fonction pour retirer les accents et les majuscules pour rendre la correction tolérante
+        // --- GESTION DE LA SAUVEGARDE (LOCAL STORAGE) ---
+        window.onload = function() {
+            checkSavedData();
+            // Appliquer le thème sombre s'il était actif avant (bonus)
+            if(localStorage.getItem('ccqDarkMode') === 'true') {
+                toggleDarkMode();
+            }
+        };
+
+        function checkSavedData() {
+            const savedIndex = localStorage.getItem('ccqCurrentIndex');
+            const savedScore = localStorage.getItem('ccqScore');
+
+            if (savedIndex !== null && savedIndex > 0 && savedIndex < questions.length) {
+                btnResume.classList.remove('hidden');
+                btnReset.classList.remove('hidden');
+                saveInfo.innerText = `Sauvegarde trouvée : Question ${parseInt(savedIndex) + 1} / ${questions.length}`;
+            } else {
+                btnResume.classList.add('hidden');
+                btnReset.classList.add('hidden');
+                saveInfo.innerText = "";
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem('ccqCurrentIndex', currentQuestionIndex);
+            localStorage.setItem('ccqScore', score);
+        }
+
+        function resetData() {
+            localStorage.removeItem('ccqCurrentIndex');
+            localStorage.removeItem('ccqScore');
+            checkSavedData();
+            saveInfo.innerText = "Sauvegarde effacée !";
+            saveInfo.style.color = "var(--incorrect)";
+        }
+
+        // --- FONCTIONS DE DÉMARRAGE ---
+        function startNewQuiz() {
+            resetData();
+            currentQuestionIndex = 0;
+            score = 0;
+            updateScore();
+            launchInterface();
+        }
+
+        function resumeQuiz() {
+            currentQuestionIndex = parseInt(localStorage.getItem('ccqCurrentIndex'));
+            score = parseInt(localStorage.getItem('ccqScore'));
+            updateScore();
+            launchInterface();
+        }
+
+        function launchInterface() {
+            startScreen.classList.add('hidden');
+            resultScreen.classList.add('hidden');
+            quizArea.classList.remove('hidden');
+            loadQuestion();
+        }
+
+        // --- MOTEUR DU QUIZ ---
         function normalizeString(str) {
             return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
         }
 
-        // Détecter la touche "Entrée" pour valider la réponse écrite
         textInput.addEventListener("keypress", function(event) {
             if (event.key === "Enter" && !validateBtn.disabled) {
                 event.preventDefault();
@@ -604,36 +526,23 @@
             }
         });
 
-        // --- FONCTIONS ---
-        function startQuiz() {
-            startScreen.classList.add('hidden');
-            quizArea.classList.remove('hidden');
-            currentQuestionIndex = 0;
-            score = 0;
-            updateScore();
-            loadQuestion();
-        }
-
         function loadQuestion() {
             feedbackBox.style.display = 'none';
             nextBtn.style.display = 'none';
             choicesGrid.innerHTML = '';
             
-            // Reset input text
             textInput.value = '';
             textInput.className = 'text-input';
             textInput.disabled = false;
             validateBtn.disabled = false;
             
             const currentQ = questions[currentQuestionIndex];
-            
             currentQNumSpan.innerText = currentQuestionIndex + 1;
             questionText.innerText = currentQ.question;
             
             const progressPercentage = (currentQuestionIndex / questions.length) * 100;
             progressBar.style.width = progressPercentage + '%';
 
-            // Gérer l'affichage selon le type de question
             if (currentQ.type === "mcq") {
                 choicesGrid.style.display = 'grid';
                 textInputContainer.style.display = 'none';
@@ -652,11 +561,9 @@
             }
         }
 
-        // Vérification des Choix Multiples
         function checkMCQAnswer(selectedIndex, selectedBtn) {
             const currentQ = questions[currentQuestionIndex];
             const allBtns = document.querySelectorAll('.choice-btn');
-            
             allBtns.forEach(btn => btn.disabled = true);
 
             if (selectedIndex === currentQ.correctIndex) {
@@ -667,19 +574,17 @@
                 allBtns[currentQ.correctIndex].classList.add('correct');
                 showFeedback(false, currentQ.feedback);
             }
+            saveData();
         }
 
-        // Vérification des Questions à Saisie de Texte
         function checkTextAnswer() {
             const currentQ = questions[currentQuestionIndex];
             const userAnswer = normalizeString(textInput.value);
-            
-            if (userAnswer === "") return; // Empêche de valider à vide
+            if (userAnswer === "") return;
 
             textInput.disabled = true;
             validateBtn.disabled = true;
 
-            // Vérifier si la réponse saisie correspond à une des réponses acceptées
             let isCorrect = false;
             for (let accepted of currentQ.acceptedAnswers) {
                 if (userAnswer === normalizeString(accepted)) {
@@ -693,13 +598,12 @@
                 showFeedback(true, currentQ.feedback);
             } else {
                 textInput.classList.add('incorrect');
-                // On affiche la bonne réponse dans le titre de l'erreur
                 const correctWord = currentQ.acceptedAnswers[0].toUpperCase();
                 showFeedback(false, `La réponse attendue était : ${correctWord}. \n\n${currentQ.feedback}`);
             }
+            saveData();
         }
 
-        // Fonction centralisée pour afficher les couleurs et textes de feedback
         function showFeedback(isCorrect, textContent) {
             if (isCorrect) {
                 feedbackTitle.innerText = "✨ BRAVO ! BONNE RÉPONSE";
@@ -723,6 +627,7 @@
         function nextQuestion() {
             currentQuestionIndex++;
             if (currentQuestionIndex < questions.length) {
+                saveData(); // Sauvegarde avant la prochaine
                 loadQuestion();
             } else {
                 showResults();
@@ -750,9 +655,11 @@
             }
             
             progressBar.style.width = '100%';
+            localStorage.removeItem('ccqCurrentIndex'); // Efface la sauvegarde car c'est fini
         }
 
-        function restartQuiz() {
+        function resetDataAndRestart() {
+            resetData();
             resultScreen.classList.add('hidden');
             startScreen.classList.remove('hidden');
             progressBar.style.width = '0%';
@@ -762,29 +669,23 @@
             scoreSpan.innerText = score;
         }
 
-        // --- LOGIQUE DU DARK MODE ---
         function toggleDarkMode() {
             const body = document.body;
             const btn = document.getElementById('theme-toggle');
-            
             body.classList.toggle('dark-mode');
             
-            if (body.classList.contains('dark-mode')) {
-                btn.innerText = "☀️ Mode Clair";
-            } else {
-                btn.innerText = "🌙 Mode Sombre";
-            }
+            const isDark = body.classList.contains('dark-mode');
+            btn.innerText = isDark ? "☀️ Mode Clair" : "🌙 Mode Sombre";
+            localStorage.setItem('ccqDarkMode', isDark);
             
-            // Rafraîchir les couleurs du feedback si une boîte est ouverte
             if (feedbackBox.style.display === 'block') {
                 if (feedbackBox.style.borderLeftColor === "var(--correct)" || feedbackBox.style.borderLeftColor === "rgb(46, 204, 113)") {
-                    feedbackBox.style.backgroundColor = body.classList.contains('dark-mode') ? "#1e3d2f" : "#e8f8f5";
+                    feedbackBox.style.backgroundColor = isDark ? "#1e3d2f" : "#e8f8f5";
                 } else {
-                    feedbackBox.style.backgroundColor = body.classList.contains('dark-mode') ? "#3d2424" : "#fdedec";
+                    feedbackBox.style.backgroundColor = isDark ? "#3d2424" : "#fdedec";
                 }
             }
         }
-
     </script>
 </body>
 </html>
