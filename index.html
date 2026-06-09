@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Révision CCQ DÉMOCRATIE SEC 2 - ÉDITION ULTIME</title>
+    <style>
+        :root {
+            --primary: #4A90E2; 
+            --secondary: #FF9F1C; 
+            --bg-color: #F4F7FB;
+            --text-color: #333333;
+            --correct: #2ECC71;
+            --incorrect: #E74C3C;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .quiz-container {
+            background-color: #ffffff;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            width: 90%;
+            max-width: 800px;
+            padding: 40px;
+            text-align: center;
+            position: relative;
+            margin: 40px 0;
+        }
+
+        h1 {
+            color: var(--primary);
+            margin-bottom: 5px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #7f8c8d;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+
+        .score-board {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            background-color: var(--primary);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 15px;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            background-color: #ecf0f1;
+            border-radius: 10px;
+            height: 10px;
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background-color: var(--secondary);
+            width: 0%;
+            transition: width 0.4s ease;
+        }
+
+        .question-text {
+            font-size: 22px;
+            font-weight: 600;
+            margin-bottom: 30px;
+            line-height: 1.4;
+        }
+
+        /* --- STYLES CHOIX MULTIPLES --- */
+        .choices-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .choice-btn {
+            background-color: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 15px;
+            padding: 18px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: left;
+            font-weight: 500;
+            color: var(--text-color);
+        }
+
+        .choice-btn:hover:not(:disabled) {
+            background-color: #e3f2fd;
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .choice-btn:disabled {
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .choice-btn.correct {
+            background-color: #e8f8f5 !important;
+            border-color: var(--correct) !important;
+            color: #27ae60 !important;
+        }
+
+        .choice-btn.incorrect {
+            background-color: #fdedec !important;
+            border-color: var(--incorrect) !important;
+            color: #c0392b !important;
+        }
+
+        /* --- STYLES ENTRÉE DE TEXTE --- */
+        .text-input-container {
+            display: none;
+            margin-bottom: 30px;
+        }
+
+        .text-input {
+            width: 80%;
+            padding: 15px 20px;
+            font-size: 18px;
+            border: 2px solid #e9ecef;
+            border-radius: 15px;
+            margin-bottom: 15px;
+            outline: none;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+
+        .text-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 10px rgba(74, 144, 226, 0.2);
+        }
+
+        .text-input.correct {
+            border-color: var(--correct);
+            background-color: #e8f8f5;
+        }
+
+        .text-input.incorrect {
+            border-color: var(--incorrect);
+            background-color: #fdedec;
+        }
+
+        .validate-btn {
+            background-color: var(--secondary);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+
+        .validate-btn:hover:not(:disabled) {
+            background-color: #e68a00;
+        }
+
+        .validate-btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        /* --- FEEDBACK --- */
+        .feedback-box {
+            display: none;
+            border-left: 6px solid var(--secondary);
+            padding: 20px;
+            border-radius: 0 15px 15px 0;
+            margin-bottom: 30px;
+            text-align: left;
+            font-size: 15px;
+            line-height: 1.6;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .feedback-box h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+
+        .next-btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 18px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+            display: none;
+            margin: 0 auto;
+            box-shadow: 0 4px 15px rgba(74, 144, 226, 0.4);
+        }
+
+        .next-btn:hover {
+            background-color: #357ABD;
+        }
+
+        .start-screen, .result-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .start-btn, .restart-btn {
+            background-color: var(--secondary);
+            color: white;
+            border: none;
+            padding: 18px 50px;
+            font-size: 20px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 20px;
+            box-shadow: 0 4px 15px rgba(255, 159, 28, 0.4);
+            transition: transform 0.2s;
+        }
+
+        .start-btn:hover, .restart-btn:hover {
+            transform: scale(1.05);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .hidden { display: none !important; }
+
+        /* --- EXTENSION DARK MODE --- */
+        body.dark-mode {
+            --bg-color: #1a1a1a;
+            --text-color: #f4f7fb;
+        }
+
+        body.dark-mode .quiz-container {
+            background-color: #2d2d2d;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        body.dark-mode .choice-btn {
+            background-color: #3d3d3d;
+            border-color: #4d4d4d;
+            color: #ffffff;
+        }
+
+        body.dark-mode .choice-btn:hover:not(:disabled) {
+            background-color: #2a4365; /* Un beau bleu nuit foncé pour le survol */
+            border-color: var(--primary);
+            color: #ffffff;
+        }
+
+        body.dark-mode .text-input {
+            background-color: #3d3d3d;
+            border-color: #4d4d4d;
+            color: #ffffff;
+        }
+
+        body.dark-mode .feedback-box {
+            color: #f4f7fb;
+        }
+
+        .theme-toggle-btn {
+            position: absolute;
+            top: 20px;
+            left: 30px;
+            background-color: #e9ecef;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s ease;
+            font-size: 14px;
+        }
+
+        body.dark-mode .theme-toggle-btn {
+            background-color: #3d3d3d;
+            color: #ffffff;
+        }
+
+        .theme-toggle-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        /* Correction des boutons Bonne/Mauvaise réponse en mode sombre */
+        body.dark-mode .choice-btn.correct,
+        body.dark-mode .text-input.correct {
+            background-color: #1e3d2f !important; /* Vert très foncé */
+            border-color: var(--correct) !important;
+            color: #2ecc71 !important; /* Vert clair pour le texte */
+        }
+
+        body.dark-mode .choice-btn.incorrect,
+        body.dark-mode .text-input.incorrect {
+            background-color: #3d2424 !important; /* Rouge très foncé */
+            border-color: var(--incorrect) !important;
+            color: #e74c3c !important; /* Rouge clair pour le texte */
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="quiz-container">
+        <button class="theme-toggle-btn" id="theme-toggle" onclick="toggleDarkMode()">🌙 Mode Sombre</button>
+        
+        <div id="start-screen" class="start-screen">
+            <h1>📚 Révision CCQ : La Démocratie (Édition Hardcore)</h1>
+            <p class="subtitle">Moins de "fafa", plus de défi pour ton examen de Sec 2 !</p>
+            <img src="https://cdn-icons-png.flaticon.com/512/3281/3281323.png" alt="Study Icon" width="150" style="margin:20px 0;">
+            <p>Ce quiz de 32 questions mélange des <strong>choix de réponses</strong> et des <strong>questions à développement (où tu dois taper la réponse)</strong> pour t'obliger à vraiment mémoriser tes concepts.</p>
+            <button class="start-btn" onclick="startQuiz()">Lancer le défi 🚀</button>
+        </div>
+
+        <div id="quiz-area" class="hidden">
+            <div class="score-board">Score : <span id="score">0</span> / <span id="total-q">0</span></div>
+            <div class="progress-bar-container">
+                <div id="progress-bar" class="progress-bar"></div>
+            </div>
+            
+            <p style="color:var(--primary); font-weight:bold; margin-bottom: 10px;">Question <span id="current-q-num">1</span></p>
+            <div id="question-text" class="question-text">Question text here?</div>
+            
+            <div id="choices-grid" class="choices-grid">
+                </div>
+
+            <div id="text-input-container" class="text-input-container">
+                <input type="text" id="text-answer" class="text-input" placeholder="Tape ta réponse ici..." autocomplete="off">
+                <br>
+                <button id="validate-btn" class="validate-btn" onclick="checkTextAnswer()">Valider la réponse</button>
+            </div>
+
+            <div id="feedback-box" class="feedback-box">
+                <h3 id="feedback-title">Rappel de cours</h3>
+                <p id="feedback-text">Feedback detail text...</p>
+            </div>
+
+            <button id="next-btn" class="next-btn" onclick="nextQuestion()">Question suivante ➡️</button>
+        </div>
+
+        <div id="result-screen" class="hidden result-screen">
+            <h1>🎉 Révision terminée !</h1>
+            <p class="subtitle">Voici ton résultat final</p>
+            <h2 style="font-size: 48px; color: var(--primary); margin: 20px 0;"><span id="final-score">0</span> / <span id="final-total">0</span></h2>
+            <p id="result-message" style="font-size: 18px; margin-bottom: 30px;"></p>
+            <button class="restart-btn" onclick="restartQuiz()">Recommencer le quiz 🔄</button>
+        </div>
+
+    </div>
+
+    <script>
+        // --- BANQUE DE QUESTIONS MIXTES (MCQ + TEXT) ---
+        const questions = [
+            {
+                type: "mcq",
+                question: "Que signifie le mot « démocratie » selon son origine grecque (dêmokratia) ?",
+                choices: ["Le pouvoir du roi", "Le pouvoir des élus", "Le pouvoir du peuple", "Le pouvoir de l'État"],
+                correctIndex: 2,
+                feedback: "Le mot vient de [dêmos] qui signifie « peuple » et [kratos] qui signifie « puissance ». Autrement dit : le pouvoir du peuple."
+            },
+            {
+                type: "mcq",
+                question: "En démocratie, comment prend-on généralement une décision lorsque le consensus (100% d'accord) est impossible ?",
+                choices: ["Le chef décide seul", "On applique la règle de la majorité (+ de 50%)", "On tire au sort", "On utilise le pouvoir judiciaire"],
+                correctIndex: 1,
+                feedback: "Puisque les choix ne font pas souvent consensus (l'accord de l'ensemble de la population), on applique la règle de la majorité : plus de la moitié des personnes doivent être d'accord."
+            },
+            {
+                type: "text",
+                question: "Complète la phrase : L'institution officielle qui s'occupe d'encadrer et de surveiller les élections au Québec s'appelle _________ Québec.",
+                acceptedAnswers: ["elections", "élections", "election", "élection"],
+                feedback: "C'est Élections Québec ! C'est l'institution officielle qui encadre la démocratie et surveille les personnes en autorité lors des processus électoraux."
+            },
+            {
+                type: "mcq",
+                question: "Selon tes notes, laquelle de ces menaces N'EST PAS une des 4 menaces principales à la démocratie en 2026 ?",
+                choices: ["La désinformation", "Les chambres d'écho", "L'ingérence étrangère", "L'absentéisme électoral"],
+                correctIndex: 3,
+                feedback: "Les 4 grandes menaces à ton examen sont : 1. L'ingérence étrangère, 2. La désinformation, 3. L'influence partisane et 4. Les chambres d'écho."
+            },
+            {
+                type: "mcq",
+                question: "Qu'est-ce que l'État de droit (ou la primauté du droit) ?",
+                choices: ["Le gouvernement peut choisir quelles lois respecter", "Personne n'est au-dessus des lois, elles s'appliquent à tous", "La police a tous les droits", "Les lois fédérales sont optionnelles"],
+                correctIndex: 1,
+                feedback: "En démocratie, les lois s'appliquent à tout le monde, même aux personnes en position de pouvoir (le gouvernement, les policiers, l'armée)."
+            },
+            {
+                type: "text",
+                question: "Lequel des 3 pouvoirs de l'État a pour fonction de PROPOSER, RÉDIGER et ADOPTER des lois ?",
+                acceptedAnswers: ["legislatif", "législatif", "le pouvoir legislatif", "le pouvoir législatif"],
+                feedback: "Le pouvoir législatif est exercé par des personnes élues siégeant dans un parlement (comme l'Assemblée nationale) pour créer les lois."
+            },
+            {
+                type: "mcq",
+                question: "Quel pouvoir a pour fonction d'APPLIQUER les lois et de DIRIGER l'État ?",
+                choices: ["Le pouvoir législatif", "Le pouvoir exécutif", "Le pouvoir judiciaire", "Le pouvoir municipal"],
+                correctIndex: 1,
+                feedback: "Le pouvoir exécutif, exercé par le gouvernement (composé du Premier ministre et de ses ministres), s'occupe de mettre les lois en application."
+            },
+            {
+                type: "text",
+                question: "Lequel des 3 pouvoirs de l'État a pour fonction d'INTERPRÉTER les lois et de JUGER si elles sont respectées ?",
+                acceptedAnswers: ["judiciaire", "le pouvoir judiciaire", "pouvoir judiciaire"],
+                feedback: "Le pouvoir judiciaire est exercé par les juges dans les tribunaux. Ce pouvoir est totalement indépendant du gouvernement pour rester neutre."
+            },
+            {
+                type: "mcq",
+                question: "Dans la hiérarchisation des lois au Québec, quelle est la loi dominante qui passe avant toutes les autres ?",
+                choices: ["Les règlements municipaux", "La Charte des droits et libertés canadienne", "Les lois provinciales", "Les directives policières"],
+                correctIndex: 1,
+                feedback: "La Charte des droits et libertés est la loi suprême. Ensuite viennent les lois fédérales et provinciales, puis les règlements municipaux à la toute fin."
+            },
+            {
+                type: "text",
+                question: "Quel palier de gouvernement s'occupe de l'armée, de la monnaie et du service postal ?",
+                acceptedAnswers: ["federal", "fédéral", "le gouvernement federal", "le gouvernement fédéral", "canada"],
+                feedback: "Le gouvernement Fédéral gère les dossiers globaux qui concernent l'ensemble du pays (le Canada)."
+            },
+            {
+                type: "mcq",
+                question: "Quel palier de gouvernement s'occupe de l'éducation, de la santé, des services sociaux et des ressources naturelles ?",
+                choices: ["Le gouvernement fédéral", "Le gouvernement provincial", "Les municipalités", "Le pouvoir judiciaire"],
+                correctIndex: 1,
+                feedback: "Le gouvernement provincial (le Québec) gère ces grands dossiers publics qui touchent directement le quotidien de la province."
+            },
+            {
+                type: "mcq",
+                question: "Laquelle de ces responsabilités appartient EXCLUSIVEMENT au palier municipal ?",
+                choices: ["L'assurance-emploi", "L'alimentation en eau potable et la planification de nouveaux quartiers", "L'agriculture", "Les lois civiles (mariages, propriétés)"],
+                correctIndex: 1,
+                feedback: "Les municipalités s'occupent des services locaux de proximité comme l'aqueduc, la collecte des déchets, les loisirs locaux et le zonage."
+            },
+            {
+                type: "text",
+                question: "L'immigration, l'environnement et l'agriculture sont des compétences __________ entre le fédéral et le provincial.",
+                acceptedAnswers: ["partagees", "partagées", "partage", "partagés", "partages"],
+                feedback: "Ce sont des compétences PARTAGÉES. Le fédéral et le provincial doivent s'entendre et travailler ensemble sur ces dossiers."
+            },
+            {
+                type: "mcq",
+                question: "En cas de conflit ou de désaccord persistant entre le fédéral et le provincial sur le partage d'une compétence, que fait-on si les négociations échouent ?",
+                choices: ["Le fédéral décide par la force", "On annule la loi", "On a recours aux tribunaux pour trancher", "On refait des élections"],
+                correctIndex: 2,
+                feedback: "Les tribunaux (le pouvoir judiciaire) interviennent de façon neutre pour trancher les chicanes de compétences constitutionnelles entre les deux paliers."
+            },
+            {
+                type: "text",
+                question: "Quel est le nom du type de pouvoir possédé par une personne qui a un don naturel pour rassembler et inspirer les foules ?",
+                acceptedAnswers: ["charismatique", "pouvoir charismatique", "le pouvoir charismatique"],
+                feedback: "Le pouvoir charismatique est attribué selon la force de caractère, le leadership et les aptitudes naturelles qui attirent l'admiration des gens."
+            },
+            {
+                type: "mcq",
+                question: "Situation : « Mère Térésa ou Gandhi sont vus comme des figures d'inspiration guidées par de fortes convictions. » Quelle est cette forme de pouvoir ?",
+                choices: ["Le pouvoir héréditaire", "Le pouvoir du savoir", "Le pouvoir démocratique", "Le pouvoir moral"],
+                correctIndex: 3,
+                feedback: "Le pouvoir moral provient du respect des qualités éthiques d'une personne (valeurs fortes, sagesse, religion) en tant que conseiller écouté."
+            },
+            {
+                type: "mcq",
+                question: "Quelle forme de pouvoir est basée sur l'expertise, et précise que « moins il y a de personnes qui possèdent ce savoir, plus il est valorisé » (Ex: un médecin ou un scientifique) ?",
+                choices: ["Le pouvoir totalitaire", "Le pouvoir hiérarchique", "Le pouvoir du savoir", "Le pouvoir héréditaire"],
+                correctIndex: 2,
+                feedback: "Le pouvoir du savoir reconnaît les connaissances scientifiques, techniques ou spécialisées qu'un individu possède."
+            },
+            {
+                type: "mcq",
+                question: "Associe ce concept : « C'est un système pyramidal basé sur les rôles et l'organisation où l'on peut gravir les échelons. Exemple : une entreprise ou l'école. »",
+                choices: ["Le pouvoir autoritaire", "Le pouvoir hiérarchique", "Le pouvoir héréditaire", "Le pouvoir totalitaire"],
+                correctIndex: 1,
+                feedback: "Le pouvoir hiérarchique organise un groupe sous forme de pyramide, où chaque niveau détient une autorité définie par ses fonctions."
+            },
+            {
+                type: "mcq",
+                question: "Associe cette situation : « Après le décès d'un souverain, son fils aîné ou son plus proche parent est couronné pour lui succéder. »",
+                choices: ["Pouvoir héréditaire", "Pouvoir moral", "Pouvoir autoritaire", "Pouvoir démocratique"],
+                correctIndex: 0,
+                feedback: "Le pouvoir héréditaire se transmet directement de génération en génération au sein d'une même lignée ou famille royale."
+            },
+            {
+                type: "mcq",
+                question: "Qu'est-ce qui distingue principalement un pouvoir TOTALITAIRE d'un pouvoir AUTORITAIRE selon tes notes de cours ?",
+                choices: ["Le totalitaire permet des élections libres, l'autoritaire non.", "Le totalitaire possède une idéologie rigide et veut un contrôle absolu de la vie privée (créer un 'Homme nouveau'), l'autoritaire veut juste l'obéissance politique.", "L'autoritaire fusionne l'État et la société, le totalitaire accepte les différences.", "Il n'y a aucune différence."],
+                correctIndex: 1,
+                feedback: "Le régime totalitaire va beaucoup plus loin : il exige une uniformité complète, utilise la suspicion constante et la délation pour contrôler les pensées et la vie privée."
+            },
+            {
+                type: "mcq",
+                question: "Qu'est-ce qu'une dictature utilise habituellement en priorité pour forcer l'obéissance et maintenir son pouvoir ?",
+                choices: ["L'armée et la peur", "Les institutions démocratiques", "Les référendums populaires", "La liberté de presse"],
+                correctIndex: 0,
+                feedback: "Les dictatures s'appuient sur les forces armées, la censure et l'intimidation pour éliminer l'opposition et rester en place."
+            },
+            {
+                type: "mcq",
+                question: "Historiquement au Québec, avant que l'État ne devienne laïque, quelle institution jouait un rôle de premier plan dans l'éducation et la santé ?",
+                choices: ["Le gouvernement fédéral", "L'Église catholique", "L'armée canadienne", "La monarchie britannique"],
+                correctIndex: 1,
+                feedback: "L'Église catholique a exercé une influence majeure sur les structures sociales, la politique, les écoles et les hôpitaux au Québec pendant très longtemps."
+            },
+            {
+                type: "mcq",
+                question: "Dans les principes de la laïcité, qu'est-ce que « la neutralité de l'État en matière religieuse » signifie ?",
+                choices: ["L'État interdit toutes les religions.", "L'État promeut l'athéisme.", "L'État traite tout le monde de façon égale sans privilégier, financer ou interdire une religion.", "L'État a une religion officielle mais tolère les autres."],
+                correctIndex: 2,
+                feedback: "La neutralité garantit que l'État reste impartial afin de protéger l'égalité de tous les citoyens, peu importent leurs convictions."
+            },
+            {
+                type: "mcq",
+                question: "La liberté de conscience et de religion garantit qu'une personne a le droit de choisir librement ses croyances. Est-elle aussi libre de n'avoir AUCUNE croyance religieuse ?",
+                choices: ["Vrai", "Faux"],
+                correctIndex: 0,
+                feedback: "La liberté de conscience protège l'ensemble de la population : le droit de croire, de changer de religion, ou de choisir de ne pas croire du tout."
+            },
+            {
+                type: "text",
+                question: "Quel est le numéro de la Loi adoptée en 2019 au Québec concernant la laïcité de l'État ?",
+                acceptedAnswers: ["21", "loi 21", "la loi 21"],
+                feedback: "C'est la fameuse Loi 21 (Loi sur la laïcité de l'État) qui interdit le port de signes religieux aux personnes en position d'autorité."
+            },
+            {
+                type: "mcq",
+                question: "Qu'est-ce que la loi 21 (Loi sur la laïcité de l'État) adoptée au Québec en 2019 interdit précisément ?",
+                choices: ["Le port de signes religieux pour les élèves à l'école.", "Le port de signes religieux pour certains employés de l'État en position d'autorité pendant leurs fonctions.", "La construction de nouveaux lieux de culte.", "L'enseignement de l'éthique."],
+                correctIndex: 1,
+                feedback: "La loi 21 restreint le port de symboles religieux uniquement pour les agents de l'État en position d'autorité afin d'afficher la neutralité de l'institution qu'ils représentent."
+            },
+            {
+                type: "mcq",
+                question: "Pourquoi la Loi 21 fait-elle l'objet de contestations devant les tribunaux ?",
+                choices: ["Parce qu'elle coûte trop cher à appliquer.", "Parce que ses opposants estiment qu'elle limite la liberté religieuse individuelle, tandis que ses partisans défendent la laïcité collective.", "Parce que le gouvernement fédéral veut imposer une religion.", "Parce qu'elle ne s'applique pas aux municipalités."],
+                correctIndex: 1,
+                feedback: "C'est le point central du débat juridique et social : l'équilibre délicat entre les libertés individuelles de religion et le choix collectif de la laïcité des institutions."
+            },
+            {
+                type: "mcq",
+                question: "Si la population est profondément en désaccord avec les décisions politiques de ses dirigeants, que se passe-t-il dans une démocratie ?",
+                choices: ["L'armée va prendre le pouvoir.", "La population va subir sans pouvoir réagir.", "Les citoyens peuvent contester et voter pour de nouveaux représentants aux prochaines élections.", "Le pouvoir devient automatiquement héréditaire."],
+                correctIndex: 2,
+                feedback: "La démocratie permet aux citoyens de sanctionner pacifiquement les élus en modifiant leur vote lors des élections périodiques."
+            }
+        ];
+
+        // --- VARIABLES DU JEU ---
+        let currentQuestionIndex = 0;
+        let score = 0;
+
+        // --- ÉLÉMENTS DOM ---
+        const startScreen = document.getElementById('start-screen');
+        const quizArea = document.getElementById('quiz-area');
+        const resultScreen = document.getElementById('result-screen');
+        const questionText = document.getElementById('question-text');
+        const choicesGrid = document.getElementById('choices-grid');
+        const textInputContainer = document.getElementById('text-input-container');
+        const textInput = document.getElementById('text-answer');
+        const validateBtn = document.getElementById('validate-btn');
+        const feedbackBox = document.getElementById('feedback-box');
+        const feedbackTitle = document.getElementById('feedback-title');
+        const feedbackText = document.getElementById('feedback-text');
+        const nextBtn = document.getElementById('next-btn');
+        const scoreSpan = document.getElementById('score');
+        const totalQSpan = document.getElementById('total-q');
+        const currentQNumSpan = document.getElementById('current-q-num');
+        const progressBar = document.getElementById('progress-bar');
+
+        totalQSpan.innerText = questions.length;
+
+        // Fonction pour retirer les accents et les majuscules pour rendre la correction tolérante
+        function normalizeString(str) {
+            return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+        }
+
+        // Détecter la touche "Entrée" pour valider la réponse écrite
+        textInput.addEventListener("keypress", function(event) {
+            if (event.key === "Enter" && !validateBtn.disabled) {
+                event.preventDefault();
+                checkTextAnswer();
+            }
+        });
+
+        // --- FONCTIONS ---
+        function startQuiz() {
+            startScreen.classList.add('hidden');
+            quizArea.classList.remove('hidden');
+            currentQuestionIndex = 0;
+            score = 0;
+            updateScore();
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            feedbackBox.style.display = 'none';
+            nextBtn.style.display = 'none';
+            choicesGrid.innerHTML = '';
+            
+            // Reset input text
+            textInput.value = '';
+            textInput.className = 'text-input';
+            textInput.disabled = false;
+            validateBtn.disabled = false;
+            
+            const currentQ = questions[currentQuestionIndex];
+            
+            currentQNumSpan.innerText = currentQuestionIndex + 1;
+            questionText.innerText = currentQ.question;
+            
+            const progressPercentage = (currentQuestionIndex / questions.length) * 100;
+            progressBar.style.width = progressPercentage + '%';
+
+            // Gérer l'affichage selon le type de question
+            if (currentQ.type === "mcq") {
+                choicesGrid.style.display = 'grid';
+                textInputContainer.style.display = 'none';
+
+                currentQ.choices.forEach((choice, index) => {
+                    const btn = document.createElement('button');
+                    btn.classList.add('choice-btn');
+                    btn.innerText = choice;
+                    btn.onclick = () => checkMCQAnswer(index, btn);
+                    choicesGrid.appendChild(btn);
+                });
+            } else if (currentQ.type === "text") {
+                choicesGrid.style.display = 'none';
+                textInputContainer.style.display = 'block';
+                textInput.focus();
+            }
+        }
+
+        // Vérification des Choix Multiples
+        function checkMCQAnswer(selectedIndex, selectedBtn) {
+            const currentQ = questions[currentQuestionIndex];
+            const allBtns = document.querySelectorAll('.choice-btn');
+            
+            allBtns.forEach(btn => btn.disabled = true);
+
+            if (selectedIndex === currentQ.correctIndex) {
+                selectedBtn.classList.add('correct');
+                showFeedback(true, currentQ.feedback);
+            } else {
+                selectedBtn.classList.add('incorrect');
+                allBtns[currentQ.correctIndex].classList.add('correct');
+                showFeedback(false, currentQ.feedback);
+            }
+        }
+
+        // Vérification des Questions à Saisie de Texte
+        function checkTextAnswer() {
+            const currentQ = questions[currentQuestionIndex];
+            const userAnswer = normalizeString(textInput.value);
+            
+            if (userAnswer === "") return; // Empêche de valider à vide
+
+            textInput.disabled = true;
+            validateBtn.disabled = true;
+
+            // Vérifier si la réponse saisie correspond à une des réponses acceptées
+            let isCorrect = false;
+            for (let accepted of currentQ.acceptedAnswers) {
+                if (userAnswer === normalizeString(accepted)) {
+                    isCorrect = true;
+                    break;
+                }
+            }
+
+            if (isCorrect) {
+                textInput.classList.add('correct');
+                showFeedback(true, currentQ.feedback);
+            } else {
+                textInput.classList.add('incorrect');
+                // On affiche la bonne réponse dans le titre de l'erreur
+                const correctWord = currentQ.acceptedAnswers[0].toUpperCase();
+                showFeedback(false, `La réponse attendue était : ${correctWord}. \n\n${currentQ.feedback}`);
+            }
+        }
+
+        // Fonction centralisée pour afficher les couleurs et textes de feedback
+        function showFeedback(isCorrect, textContent) {
+            if (isCorrect) {
+                feedbackTitle.innerText = "✨ BRAVO ! BONNE RÉPONSE";
+                feedbackTitle.style.color = "var(--correct)";
+                feedbackBox.style.borderLeftColor = "var(--correct)";
+                feedbackBox.style.backgroundColor = document.body.classList.contains('dark-mode') ? "#1e3d2f" : "#e8f8f5";
+                score++;
+                updateScore();
+            } else {
+                feedbackTitle.innerText = "💡 COMPRÉHENSION : PAS TOUT À FAIT !";
+                feedbackTitle.style.color = "var(--incorrect)";
+                feedbackBox.style.borderLeftColor = "var(--incorrect)";
+                feedbackBox.style.backgroundColor = document.body.classList.contains('dark-mode') ? "#3d2424" : "#fdedec";
+            }
+
+            feedbackText.innerText = textContent;
+            feedbackBox.style.display = 'block';
+            nextBtn.style.display = 'block';
+        }
+
+        function nextQuestion() {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < questions.length) {
+                loadQuestion();
+            } else {
+                showResults();
+            }
+        }
+
+        function showResults() {
+            quizArea.classList.add('hidden');
+            resultScreen.classList.remove('hidden');
+            
+            document.getElementById('final-score').innerText = score;
+            document.getElementById('final-total').innerText = questions.length;
+            
+            const resultMsg = document.getElementById('result-message');
+            const percentage = (score / questions.length) * 100;
+            
+            if (percentage === 100) {
+                resultMsg.innerText = "Incroyable ! Tu as tout détruit, même les questions écrites. 🏆";
+            } else if (percentage >= 80) {
+                resultMsg.innerText = "Très bon travail ! Ta mémoire est excellente. 👏";
+            } else if (percentage >= 60) {
+                resultMsg.innerText = "Tu es sur la bonne voie. Les questions écrites sont dures, c'est normal ! 📖";
+            } else {
+                resultMsg.innerText = "La démocratie a encore quelques secrets pour toi ! Prends le temps de relire. 💪";
+            }
+            
+            progressBar.style.width = '100%';
+        }
+
+        function restartQuiz() {
+            resultScreen.classList.add('hidden');
+            startScreen.classList.remove('hidden');
+            progressBar.style.width = '0%';
+        }
+
+        function updateScore() {
+            scoreSpan.innerText = score;
+        }
+
+        // --- LOGIQUE DU DARK MODE ---
+        function toggleDarkMode() {
+            const body = document.body;
+            const btn = document.getElementById('theme-toggle');
+            
+            body.classList.toggle('dark-mode');
+            
+            if (body.classList.contains('dark-mode')) {
+                btn.innerText = "☀️ Mode Clair";
+            } else {
+                btn.innerText = "🌙 Mode Sombre";
+            }
+            
+            // Rafraîchir les couleurs du feedback si une boîte est ouverte
+            if (feedbackBox.style.display === 'block') {
+                if (feedbackBox.style.borderLeftColor === "var(--correct)" || feedbackBox.style.borderLeftColor === "rgb(46, 204, 113)") {
+                    feedbackBox.style.backgroundColor = body.classList.contains('dark-mode') ? "#1e3d2f" : "#e8f8f5";
+                } else {
+                    feedbackBox.style.backgroundColor = body.classList.contains('dark-mode') ? "#3d2424" : "#fdedec";
+                }
+            }
+        }
+
+    </script>
+</body>
+</html>
